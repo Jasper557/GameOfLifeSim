@@ -1,4 +1,4 @@
-package org.example;
+package de.jAspy;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
