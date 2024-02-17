@@ -1,11 +1,16 @@
 package de.jAspy;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Affine;
+import javafx.scene.transform.NonInvertibleTransformException;
 
 public class MainView extends VBox {
 
@@ -16,34 +21,58 @@ public class MainView extends VBox {
 
     private Simulation simulation;
 
-    public MainView() {
-        stepButton = new Button("Step");
+    private int drawMode = 1;
 
-        stepButton.setOnAction(e -> {
+    public MainView() {
+        this.stepButton = new Button("Step");
+        this.stepButton.setOnAction(e -> {
             this.simulation.step();
             this.draw();
         });
 
+        this.canvas = new Canvas(400, 400);
+        //Mouse Events
+        this.canvas.setOnMousePressed(this::handleDraw);
+        this.canvas.setOnMouseDragged(this::handleDraw);
+        //Hotkey Events
+        this.setOnKeyPressed(this::onKeyPressed);
 
-        canvas = new Canvas(400, 400);
 
         this.getChildren().addAll(this.stepButton, this.canvas);
 
-        this.simulation = new Simulation(10,10);
+        this.simulation = new Simulation(10, 10);
 
         this.affine = new Affine();
         this.affine.appendScale(this.canvas.getWidth() / simulation.width, this.canvas.getHeight() / simulation.height);
+    }
 
+    private void onKeyPressed(KeyEvent e) {
+        if (e.getCode() == KeyCode.D) {
+            this.drawMode = 1;
+            System.out.println("Draw Mode");
+        } else if (e.getCode() == KeyCode.E) {
+            this.drawMode = 0;
+            System.out.println("Erase Mode");
+        }
+    }
 
-        simulation.setAlive(2, 2);
-        simulation.setAlive(3, 2);
-        simulation.setAlive(4, 2);
+    private void handleDraw(MouseEvent e) {
+        double mouseX = e.getX();
+        double mouseY = e.getY();
 
-        simulation.setAlive(5, 5);
-        simulation.setAlive(5, 6);
-        simulation.setAlive(6, 5);
-        simulation.setAlive(6, 6);
-        simulation.setAlive(4, 5);
+        try {
+            Point2D simCoord = this.affine.inverseTransform(mouseX, mouseY);
+
+            int simX = (int) simCoord.getX();
+            int simY = (int) simCoord.getY();
+
+            this.simulation.setState(simX, simY, drawMode);
+            this.draw();
+
+        } catch (NonInvertibleTransformException ex) {
+            System.out.println("Could not invert affine transform");
+        }
+
     }
 
     public void draw() {
@@ -57,8 +86,7 @@ public class MainView extends VBox {
         for (int x = 0; x < this.simulation.width; x++) {
             for (int y = 0; y < this.simulation.height; y++) {
 
-                if(this.simulation.getState(x, y) == 1)
-                    g.fillRect(x, y, 1, 1);
+                if (this.simulation.getState(x, y) == 1) g.fillRect(x, y, 1, 1);
 
             }
 
